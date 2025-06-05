@@ -1,39 +1,23 @@
 import streamlit as st
-import requests
-import pandas as pd
+from forex_python.converter import CurrencyRates, RatesNotAvailableError
 
-# Set the page configuration
-st.set_page_config(page_title="Market Price Tracker", layout="wide")
+# Initialize the CurrencyRates object
+c = CurrencyRates()
 
-# Title of the app
-st.title("🧺 Market Price Tracker")
-
-# Sidebar for user inputs
-st.sidebar.header("Filter Options")
+# Set the title of the app
+st.title("💱 Currency Converter")
 
 # Input fields
-commodity = st.sidebar.text_input("Enter Commodity Name", "Potato")
-state = st.sidebar.text_input("Enter State Name", "Karnataka")
-market = st.sidebar.text_input("Enter Market Name", "Bangalore")
+amount = st.number_input("Enter amount:", min_value=0.0, value=1.0, step=0.1)
+from_currency = st.selectbox("From Currency:", options=sorted(c.get_rates('').keys()))
+to_currency = st.selectbox("To Currency:", options=sorted(c.get_rates('').keys()))
 
-# Button to fetch data
-if st.sidebar.button("Fetch Prices"):
-    with st.spinner("Fetching data..."):
-        try:
-            # Construct the API URL
-            api_url = f"http://127.0.0.1:5000/request?commodity={commodity}&state={state}&market={market}"
-            response = requests.get(api_url)
-            if response.status_code == 200:
-                data = response.json()
-                if data:
-                    # Convert JSON data to DataFrame
-                    df = pd.DataFrame(data)
-                    # Display the data
-                    st.subheader(f"Price Data for {commodity.title()} in {market.title()}, {state.title()}")
-                    st.dataframe(df)
-                else:
-                    st.warning("No data found for the given inputs.")
-            else:
-                st.error("Failed to fetch data from the API.")
-        except Exception as e:
-            st.error(f"An error occurred: {e}")
+# Convert button
+if st.button("Convert"):
+    try:
+        result = c.convert(from_currency, to_currency, amount)
+        st.success(f"{amount} {from_currency} = {result:.2f} {to_currency}")
+    except RatesNotAvailableError:
+        st.error("Exchange rate not available for the selected currencies.")
+    except Exception as e:
+        st.error(f"An error occurred: {e}")
